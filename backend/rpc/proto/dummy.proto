@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package proto;
+
+message DummyRequest {
+    bytes payload = 1;
+}
+
+message DummyResponse {
+    bytes payload = 1;
+}
+
+service GetDummyData {
+    rpc Get(DummyRequest) returns (DummyResponse);
+}
