@@ -20,5 +20,15 @@ grpc && fasthttp benchmark
 
   启动方式: 
 
-  front --access=[http/grpc] --http_backend=http://1.2.3.4:8080 --rpc_backend=1.2.3.4:9090
+    front --access=[http/grpc] --http_backend=http://1.2.3.4:8080 --rpc_backend=1.2.3.4:9090
 
+
+### 压测数据
+
+    ab -n 100000 -c 100 http://front/data
+
+#### grpc调用方式
+![grpc access](asset/http_ab.jpeg)
+
+#### http调用方式
+![http_access](asset/rpc_ab.jpeg)
