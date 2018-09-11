@@ -98,5 +98,4 @@ func callWithGRPC(ctx *routing.Context) ([]byte, error) {
 	resp, err := singleRpcConn.Get(rpcCtx, req)
 
 	return resp.GetPayload(), err
-
 }

@@ -29,4 +29,6 @@ func main() {
 	withWaitServer(http.ServeHTTPForever)
 
 	rpc.ServeRPCForever()
+
+	waitGroup.Wait()
 }
