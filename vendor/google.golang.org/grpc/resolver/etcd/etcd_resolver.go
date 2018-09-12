@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"strings"
+
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"google.golang.org/grpc/grpclog"
@@ -58,13 +60,15 @@ func (b *etcdBuilder) Build(target resolver.Target, cc resolver.ClientConn, opts
 		freq:         5 * time.Minute,
 		backoff:      backoff.Exponential{MaxDelay: defaultMinFrequency},
 		proxyAddress: etcdProxy + ":" + port,
-		t:            time.NewTimer(1 * time.Second),
+		t:            time.NewTimer(0),
 		rn:           make(chan struct{}, 1),
+		im:           make(chan []resolver.Address),
 		wg:           sync.WaitGroup{},
 	}
 
-	rlv.wg.Add(1)
+	rlv.wg.Add(2)
 	go rlv.watcher()
+	go rlv.FetchBackendsWithWatch()
 
 	return rlv, nil
 }
@@ -85,6 +89,7 @@ type etcdResolver struct {
 	t            *time.Timer
 
 	rn chan struct{}
+	im chan []resolver.Address
 
 	wg sync.WaitGroup
 }
@@ -109,6 +114,13 @@ func (r *etcdResolver) watcher() {
 		select {
 		case <-r.ctx.Done():
 			return
+		case addrs := <-r.im:
+			if len(addrs) > 0 {
+				r.retry = 0
+				r.t.Reset(r.freq)
+				r.cc.NewAddress(addrs)
+				continue
+			}
 		case <-r.t.C:
 		case <-r.rn:
 		}
@@ -127,18 +139,30 @@ func (r *etcdResolver) watcher() {
 	}
 }
 
-func (r *etcdResolver) FetchBackendsWithWatch() ([]resolver.Address, error) {
-	rch := r.cli.Watch(context.Background(), defaultKey)
-	result := make([]resolver.Address, 0)
-	for w := range rch {
-		for _, ev := range w.Events {
-			if ev.Type == mvccpb.PUT {
-				result = append(result, resolver.Address{Addr: string(ev.Kv.Value)})
+func (r *etcdResolver) FetchBackendsWithWatch() {
+	defer r.wg.Done()
+
+	for {
+		select {
+		case <-r.ctx.Done():
+			return
+		case data := <-r.cli.Watch(r.ctx, defaultKey):
+			result := make([]resolver.Address, 0)
+			for _, ev := range data.Events {
+				if ev.Type == mvccpb.PUT {
+					for _, addr := range strings.Split(string(ev.Kv.Value), ",") {
+						addr := strings.TrimSpace(addr)
+						if addr == "" {
+							continue
+						}
+						result = append(result, resolver.Address{Addr: addr})
+					}
+					grpclog.Infoln("data changed:", result)
+					r.im <- result
+				}
 			}
 		}
 	}
-
-	return nil, nil
 }
 
 func (r *etcdResolver) FetchBackends() []resolver.Address {
