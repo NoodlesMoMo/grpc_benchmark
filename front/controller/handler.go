@@ -10,6 +10,9 @@ import (
 
 	"github.com/qiangxue/fasthttp-routing"
 	"google.golang.org/grpc"
+	_ "google.golang.org/grpc/resolver/etcd"
+	"google.golang.org/grpc/grpclog"
+	"os"
 )
 
 var (
@@ -29,12 +32,15 @@ func init() {
 
 	flag.StringVar(&AccessType, "access", "grpc", "access backend type")
 	flag.StringVar(&HTTPBackend, "http_backend", "http://127.0.0.1:8080", "http backend server address")
-	flag.StringVar(&RPCBackend, "rpc_backend", "127.0.0.1:9090", "rpc backend server address")
+	//flag.StringVar(&RPCBackend, "rpc_backend", "127.0.0.1:9090", "rpc backend server address")
+	flag.StringVar(&RPCBackend, "rpc_backend", "etcd:///10.135.54.224:2379", "rpc backend server address")
 
 	flag.Parse()
 
+	grpclog.SetLoggerV2(grpclog.NewLoggerV2(os.Stdout, os.Stdout, os.Stderr))
+
 	singleRpcConn = func() proto.GetDummyDataClient {
-		ctx, _ := context.WithTimeout(context.Background(), 2*time.Second)
+		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 		conn, err := grpc.DialContext(ctx, RPCBackend, grpc.WithInsecure(), grpc.WithBlock())
 		if err != nil {
 			panic(err)
