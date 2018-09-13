@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/coreos/etcd/clientv3"
-	"github.com/coreos/etcd/mvcc/mvccpb"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/internal/backoff"
 	"google.golang.org/grpc/resolver"
@@ -149,7 +148,7 @@ func (r *etcdResolver) FetchBackendsWithWatch() {
 		case data := <-r.cli.Watch(r.ctx, defaultKey):
 			result := make([]resolver.Address, 0)
 			for _, ev := range data.Events {
-				if ev.Type == mvccpb.PUT {
+				//if ev.Type == mvccpb.PUT || ev.Type == mvccpb.DELETE {
 					for _, addr := range strings.Split(string(ev.Kv.Value), ",") {
 						addr := strings.TrimSpace(addr)
 						if addr == "" {
@@ -159,7 +158,7 @@ func (r *etcdResolver) FetchBackendsWithWatch() {
 					}
 					grpclog.Infoln("data changed:", result)
 					r.im <- result
-				}
+				//}
 			}
 		}
 	}
