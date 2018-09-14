@@ -32,8 +32,9 @@ func init() {
 
 	flag.StringVar(&AccessType, "access", "grpc", "access backend type")
 	flag.StringVar(&HTTPBackend, "http_backend", "http://127.0.0.1:8080", "http backend server address")
+	flag.StringVar(&RPCBackend, "rpc_backend", "etcd:///127.0.0.1:2379", "rpc backend server address")
 	//flag.StringVar(&RPCBackend, "rpc_backend", "127.0.0.1:9090", "rpc backend server address")
-	flag.StringVar(&RPCBackend, "rpc_backend", "etcd:///10.135.54.224:2379", "rpc backend server address")
+	//flag.StringVar(&RPCBackend, "rpc_backend", "etcd:///10.135.54.224:2379", "rpc backend server address")
 
 	flag.Parse()
 
@@ -41,7 +42,8 @@ func init() {
 
 	singleRpcConn = func() proto.GetDummyDataClient {
 		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-		conn, err := grpc.DialContext(ctx, RPCBackend, grpc.WithInsecure(), grpc.WithBlock())
+		conn, err := grpc.DialContext(ctx, RPCBackend, grpc.WithInsecure(), grpc.WithBlock(),
+			grpc.WithBalancerName("round_robin"))
 		if err != nil {
 			panic(err)
 		}

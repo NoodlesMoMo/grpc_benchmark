@@ -1,12 +1,23 @@
 package rpc
 
 import (
+	"flag"
 	"fmt"
 	"grpc_benchmark/backend/rpc/proto"
 	"net"
 
 	"google.golang.org/grpc"
 )
+
+var (
+	flagPort string
+)
+
+func init() {
+	flag.StringVar(&flagPort, "rpc_port", "9090", "rpc listen port")
+
+	flag.Parse()
+}
 
 func ServeRPCForever() error {
 	var (
@@ -18,7 +29,7 @@ func ServeRPCForever() error {
 
 	proto.RegisterGetDummyDataServer(srv, new(DummyRPCServer))
 
-	if listener, err = net.Listen("tcp4", ":9090"); err != nil {
+	if listener, err = net.Listen("tcp4", ":"+flagPort); err != nil {
 		return err
 	}
 

@@ -177,7 +177,13 @@ func (r *etcdResolver) FetchBackends() []resolver.Address {
 	}
 
 	for _, kv := range resp.Kvs {
-		result = append(result, resolver.Address{Addr: string(kv.Value)})
+		for _, addr := range strings.Split(string(kv.Value), ",") {
+			addr := strings.TrimSpace(addr)
+			if addr == "" {
+				continue
+			}
+			result = append(result, resolver.Address{Addr: addr})
+		}
 	}
 
 	return result

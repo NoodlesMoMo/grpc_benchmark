@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"strings"
 	"time"
+	"fmt"
 )
 
 type DummyData struct {
@@ -18,6 +19,8 @@ func GenerateDummyData() []byte {
 		Code: x,
 		Data: strings.Repeat("x", x),
 	}
+
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>")
 
 	dataJson, _ := json.Marshal(data)
 

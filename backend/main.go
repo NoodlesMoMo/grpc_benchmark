@@ -1,7 +1,6 @@
 package main
 
 import (
-	"grpc_benchmark/backend/http"
 	"grpc_benchmark/backend/rpc"
 	"sync"
 )
@@ -26,9 +25,9 @@ func withWaitServer(server func() error) {
 
 func main() {
 
-	withWaitServer(http.ServeHTTPForever)
+	//withWaitServer(http.ServeHTTPForever)
 
 	rpc.ServeRPCForever()
 
-	waitGroup.Wait()
+	//waitGroup.Wait()
 }
