@@ -8,8 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"strings"
-
 	"github.com/coreos/etcd/clientv3"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/internal/backoff"
@@ -17,8 +15,8 @@ import (
 )
 
 const (
-	defaultPort = "2379"
-	defaultKey  = `hello_mgj`
+	defaultPort      = "2379"
+	defaultKeyPrefix = `ime_ucenter_`
 )
 
 var (
@@ -145,21 +143,13 @@ func (r *etcdResolver) FetchBackendsWithWatch() {
 		select {
 		case <-r.ctx.Done():
 			return
-		case data := <-r.cli.Watch(r.ctx, defaultKey):
+		case data := <-r.cli.Watch(r.ctx, defaultKeyPrefix, clientv3.WithPrefix()):
 			result := make([]resolver.Address, 0)
 			for _, ev := range data.Events {
-				//if ev.Type == mvccpb.PUT || ev.Type == mvccpb.DELETE {
-					for _, addr := range strings.Split(string(ev.Kv.Value), ",") {
-						addr := strings.TrimSpace(addr)
-						if addr == "" {
-							continue
-						}
-						result = append(result, resolver.Address{Addr: addr})
-					}
-					grpclog.Infoln("data changed:", result)
-					r.im <- result
-				//}
+				result = append(result, resolver.Address{Addr: string(ev.Kv.Value)})
+				grpclog.Infoln("data changed:", result)
 			}
+			r.im <- result
 		}
 	}
 }
@@ -170,20 +160,14 @@ func (r *etcdResolver) FetchBackends() []resolver.Address {
 
 	result := make([]resolver.Address, 0)
 
-	resp, err := r.cli.Get(ctx, defaultKey)
+	resp, err := r.cli.Get(ctx, defaultKeyPrefix, clientv3.WithPrefix())
 	if err != nil {
 		grpclog.Errorln("Fetch etcd proxy error:", err)
 		return result
 	}
 
 	for _, kv := range resp.Kvs {
-		for _, addr := range strings.Split(string(kv.Value), ",") {
-			addr := strings.TrimSpace(addr)
-			if addr == "" {
-				continue
-			}
-			result = append(result, resolver.Address{Addr: addr})
-		}
+		result = append(result, resolver.Address{Addr: string(kv.Value)})
 	}
 
 	return result
